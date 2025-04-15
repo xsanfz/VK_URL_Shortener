@@ -60,10 +60,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # TOKEN = "7db8c8fe7db8c8fe7db8c8fe1f7e979cf177db87db8c8fe1a45ffa0e0a7530175d2a5d5"
-    # TEST_URL = "https://api.vk.com/method/utils.getShortLink"
-
-
+    
 
 
 
