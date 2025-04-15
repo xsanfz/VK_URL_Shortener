@@ -1,42 +1,69 @@
+import os
 import requests
+from urllib.parse import urlparse
+from dotenv import load_dotenv
 
 
-def shorten_link(token: str, long_url: str) -> str:
+def is_short_url(url):
+    parsed = urlparse(url)
+    return parsed.netloc == 'vk.cc' and len(parsed.path) > 1
 
-    url = "https://api.vk.com/method/utils.getShortLink"
-    params = {
-        "access_token": token,
-        "url": long_url,
-        "v": "5.131"
-    }
+
+def process_url(token, url):
+    if not token:
+        return "Ошибка: Не задан токен доступа"
 
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        if "response" in data:
-            return data["response"]["short_url"]
+        if is_short_url(url):
+            short_code = urlparse(url).path[1:]
+            response = requests.get(
+                "https://api.vk.com/method/utils.getLinkStats",
+                params={"access_token": token, "key": short_code, "v": "5.131"},
+                timeout=5
+            )
+            data = response.json()
+            if "error" in data:
+                return f"Ошибка статистики: {data['error']['error_msg']}"
+            return f"Кликов: {sum(day['views'] for day in data['response']['stats'])}"
         else:
-            error_msg = data.get("error", {}).get("error_msg", "Неизвестная ошибка API")
-            return f"Ошибка: {error_msg}"
-
+            response = requests.get(
+                "https://api.vk.com/method/utils.getShortLink",
+                params={"access_token": token, "url": url, "v": "5.131"},
+                timeout=5
+            )
+            data = response.json()
+            if "error" in data:
+                return f"Ошибка сокращения: {data['error']['error_msg']}"
+            return f"Сокращенная ссылка: {data['response']['short_url']}"
     except requests.exceptions.RequestException as e:
-        return f"Ошибка соединения: {e}"
+        return f"Ошибка сети: {str(e)}"
 
 
 def main():
+    load_dotenv()
+    TOKEN = os.getenv("VK_API_TOKEN")
 
-    TOKEN = "7db8c8fe7db8c8fe7db8c8fe1f7e979cf177db87db8c8fe1a45ffa0e0a7530175d2a5d5"
-    TEST_URL = "https://api.vk.com/method/utils.getShortLink"
+    print("Сервис обработки ссылок VK")
 
 
-    short_url = shorten_link(TOKEN, TEST_URL)
-    print("Сокращенная ссылка:", short_url)
+    while True:
+        url = input("\nВведите ссылку (или 'q' для выхода): ").strip()
+        if url.lower() == 'q':
+            break
+
+        if not urlparse(url).scheme:
+            url = 'https://' + url
+
+        result = process_url(TOKEN, url)
+        print(result)
 
 
 if __name__ == "__main__":
     main()
+    # TOKEN = "7db8c8fe7db8c8fe7db8c8fe1f7e979cf177db87db8c8fe1a45ffa0e0a7530175d2a5d5"
+    # TEST_URL = "https://api.vk.com/method/utils.getShortLink"
+
+
 
 
 
