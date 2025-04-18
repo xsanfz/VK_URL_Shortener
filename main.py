@@ -3,12 +3,13 @@ import requests
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
-def is_vk_short_link(token, url):  
+
+def is_shorten_link(token, url):
     try:
         parsed = urlparse(url)
         if parsed.netloc != 'vk.cc' or len(parsed.path) <= 1:
             return False
-            
+
         response = requests.get(
             "https://api.vk.com/method/utils.getLinkStats",
             params={
@@ -20,11 +21,12 @@ def is_vk_short_link(token, url):
         )
         data = response.json()
         return 'error' not in data
-        
+
     except requests.exceptions.RequestException:
         return False
 
-def count_clicks(token, short_url):   
+
+def count_clicks(token, short_url):
     parsed = urlparse(short_url)
     response = requests.get(
         "https://api.vk.com/method/utils.getLinkStats",
@@ -38,11 +40,12 @@ def count_clicks(token, short_url):
     response.raise_for_status()
     return sum(day['views'] for day in response.json()['response']['stats'])
 
-def shorten_link(token, original_url):   
+
+def shorten_link(token, original_url):
     parsed = urlparse(original_url)
     if not parsed.scheme:
         original_url = f'https://{original_url}'
-    
+
     response = requests.get(
         "https://api.vk.com/method/utils.getShortLink",
         params={
@@ -55,14 +58,15 @@ def shorten_link(token, original_url):
     response.raise_for_status()
     return response.json()['response']['short_url']
 
+
 def main():
     load_dotenv()
-    
+
     try:
         token = os.environ['VK_API_TOKEN']
         url = input("Введите URL: ").strip()
-        
-        if is_vk_short_link(token, url):
+
+        if is_shorten_link(token, url):
             print(f"Кликов: {count_clicks(token, url)}")
         else:
             print(f"Сокращенная ссылка: {shorten_link(token, url)}")
@@ -73,6 +77,7 @@ def main():
         print(f"Ошибка сети: {str(e)}")
     except Exception as e:
         print(f"Ошибка обработки: {str(e)}")
+
 
 if __name__ == "__main__":
     main()
